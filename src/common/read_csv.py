@@ -1,6 +1,6 @@
 import os
 import csv
-from getpath import *
+from src.common.getpath import *
 
 
 # 定义一个类，用来读取csv文件的数据（测试用例数据和配置数据）
@@ -32,7 +32,7 @@ class ReadCSV:
             print(csv_data, type(csv_data))
             data = dict(csv_data)
         return data
-
+readcsv_obj = ReadCSV()
 
 if __name__ == '__main__':
     print(ReadCSV().read_case_data('login_case_data.csv', 1))
