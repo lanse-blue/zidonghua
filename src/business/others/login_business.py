@@ -3,8 +3,8 @@ from src.pages.others import login_page
 
 
 class LoginBusiness(login_page.LoginPage):
-    def login_hospital(self, row_num):
-        username, password = read_csv.readcsv_obj.read_case_data('login_case_data.csv', row_num)
+    def login_hospital(self, row_num,file_name='login_case_data.csv'):
+        username, password = read_csv.readcsv_obj.read_case_data(file_name, row_num)
         login_page.LoginPage.login(self, username, password)
 
 

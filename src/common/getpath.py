@@ -10,8 +10,8 @@ class GetPath:
     def get_config_path(self):
         config_path = os.path.join(self.get_pro_path(), 'config')
         return config_path
-    def get_picture_path(self):
-        picture_path = os.path.join(self.get_pro_path(), 'picture')
+    def get_pictures_path(self):
+        picture_path = os.path.join(self.get_pro_path(), 'pictures')
         return picture_path
     def get_reports_path(self):
         reports_path = os.path.join(self.get_pro_path(), 'reports')
