@@ -18,6 +18,7 @@ class BasePage:
         :param driver:
         """
         self.driver = driver
+
     def find_element_explicitly(self, locator, timeout=5):
         """
 
@@ -27,15 +28,17 @@ class BasePage:
         """
         emt = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located(locator))
         return emt
-    def get_screenshot(self,case_title):
+
+    def get_screenshot(self, case_title):
         """
 
         :param case_title:
         :return:
         """
-        picture_abspath =join(get_path.get_pictures_path(),f"{case_title}_{get_cur_time()}.png")
+        picture_abspath = join(get_path.get_pictures_path(), f"{case_title}_{get_cur_time()}.png")
         self.driver.get_screenshot_as_file(picture_abspath)
-    def hover_over_element(self, element,pause_time = 2):
+
+    def hover_over_element(self, element, pause_time=2):
         """
 
         :param element:
@@ -44,6 +47,24 @@ class BasePage:
         """
         action_chains_obj = ActionChains(self.driver)
         action_chains_obj.move_to_element(element).pause(pause_time).perform()
-    def switch_into_frame(self,locator,timeout=5):
+
+    def switch_into_frame(self, locator, timeout=5):
         wait_obj = WebDriverWait(self.driver, timeout)
         wait_obj.until(EC.frame_to_be_available_and_switch_to_it(locator))
+
+    def check_element_is_invisible(self, locator, timeout=5):
+        """
+        EC.invisibility_of_element_located 返回值可能为:
+          ① WebElement  — 元素存在但不可见 (Selenium 4.44+)
+          ② False       — 元素存在且可见, until() 继续轮询直到超时抛异常
+          ③ True        — 元素不存在于 DOM
+          ④ True        — 元素已过期 (stale)
+
+        情况①③④为停止轮询, result 为 truthy, 返回 True
+        情况②持续轮询直到超时, 实际走不到 return
+        """
+        result = WebDriverWait(self.driver, timeout).until(EC.invisibility_of_element_located(locator))
+        if result:
+            return True
+        else:
+            return False

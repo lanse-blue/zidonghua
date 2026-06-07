@@ -2,6 +2,7 @@ from selenium import webdriver
 from src.common import read_csv
 from src.business.others import login_business
 from src.pages.others.home_page import HomePage
+from src.common.connect_mysql import *
 
 
 class TestLogin:

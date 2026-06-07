@@ -29,11 +29,12 @@ class ReadCSV:
         csv_path = os.path.join(get_path.get_config_path(), file_name)
         with open(csv_path, 'r', encoding='utf-8') as f:
             csv_data = csv.reader(f)
-            print(csv_data, type(csv_data))
             data = dict(csv_data)
         return data
+
+
 readcsv_obj = ReadCSV()
 
 if __name__ == '__main__':
     print(ReadCSV().read_case_data('login_case_data.csv', 1))
-    print(ReadCSV().read_config_data('url.csv'))
+    print(ReadCSV().read_config_data('db_info.csv'))

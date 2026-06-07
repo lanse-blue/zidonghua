@@ -1,0 +1,6 @@
+key,value
+host,172.21.5.151
+username,root
+password,51Testing@
+port,3306
+db,hospital

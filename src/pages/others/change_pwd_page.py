@@ -9,6 +9,7 @@ class ChangePwdPage(BasePage):
     save_btn_ele = (By.ID, "qwe")
     cancle_btn_ele = (By.ID, "guanbi")
     close_btn_ele = (By.CLASS_NAME, "layui-layer-close")
+    change_pwd_sucess_ele = (By.CSS_SELECTOR, '#dataFrm~div div')
 
     def input_pwd(self, old_pwd, new_pwd, confirm_pwd):
         """
@@ -30,3 +31,9 @@ class ChangePwdPage(BasePage):
 
     def click_close_btn(self):
         BasePage.find_element_explicitly(self, self.close_btn_ele).click()
+
+    def get_change_pwd_sucess_text(self):
+        return BasePage.find_element_explicitly(self, self.change_pwd_sucess_ele).text
+
+    def check_cancelbtn_is_invisible(self):
+        return BasePage.check_element_is_invisible(self, self.cancle_btn_ele)
