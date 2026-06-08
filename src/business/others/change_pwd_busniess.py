@@ -6,7 +6,7 @@ from src.pages.others.home_page import *
 from src.pages.others.personal_data_page import *
 from src.pages.others.change_pwd_page import *
 class ChangePwdBusiness(ChangePwdPage):
-    def change_pwd_click_btn(self,row_num,btn_name="保存"):
+    def     change_pwd_click_btn(self,row_num,btn_name="保存"):
         oldpwd,new_pwd,confirm_pwd = readcsv_obj.read_case_data('change_case_data.csv',row_num)
         home_page_obj = HomePage(self.driver)
         home_page_obj.hover_over_username()
