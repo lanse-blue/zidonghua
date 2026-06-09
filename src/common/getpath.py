@@ -1,5 +1,7 @@
 import os
 
+from src.common.time_stamp import get_cur_time
+
 
 class GetPath:
     def get_pro_path(self):
@@ -20,7 +22,7 @@ class GetPath:
         return picture_path
 
     def get_reports_path(self):
-        reports_path = os.path.join(self.get_pro_path(), 'reports')
+        reports_path = os.path.join(self.get_pro_path(), 'reports',f"report_{get_cur_time()}")
         return reports_path
 
     def get_testcase_path(self):
@@ -30,6 +32,8 @@ class GetPath:
     def get_pages_path(self):
         pages_path = os.path.join(self.get_pro_path(), 'pages')
         return pages_path
-
+    def gent_allure_results_path(self):
+        allure_results_path = os.path.join(self.get_pro_path(), 'allure-results')
+        return allure_results_path
 
 get_path = GetPath()

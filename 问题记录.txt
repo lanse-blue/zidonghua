@@ -1,0 +1,238 @@
+================================================================================
+  Python + Selenium + pytest + Allure 自动化测试项目问题记录
+  项目路径: /home/lzy/xiangmuzidonghua
+  日期: 2026-06-09
+================================================================================
+
+一、pytest.main() 参数传递错误
+--------------------------------------------------------------------------------
+【现象】
+  ModuleNotFoundError: No module named '-'
+  ImportError: Error importing plugin "-": No module named '-'
+
+【出错代码】src/testcase_runner.py 第13行
+  pytest.main(['--alluredir', allure_results],'--clean-alluredir')
+
+【根因】
+  pytest.main(args, plugins) 的第二个位置参数是 plugins（插件名），
+  不是命令行参数。'--clean-alluredir' 被传给了 plugins，pytest 试图
+  import '--clean-alluredir'，'-' 不是合法模块名，导致崩溃。
+
+【修复】
+  pytest.main(['--alluredir', allure_results, '--clean-alluredir'])
+  把 '--clean-alluredir' 放进列表里，作为第三个参数。
+
+
+二、gent_allure_results_path() 忘了写 return
+--------------------------------------------------------------------------------
+【现象】
+  TypeError: expected str, bytes or os.PathLike object, not NoneType
+
+【出错代码】src/common/getpath.py 第35-37行
+  def gent_allure_results_path(self):
+      allure_results_path = os.path.join(self.get_pro_path(), 'allure-results')
+      # ← 没有 return！
+
+【根因】
+  方法计算了路径但忘了返回，Python 默认返回 None。
+  pytest.main(['--alluredir', None, ...]) 炸了。
+
+【修复】
+  补上 return allure_results_path
+
+
+三、read_config_data() 返回字典而不是字符串
+--------------------------------------------------------------------------------
+【现象】
+  selenium.common.exceptions.InvalidArgumentException:
+  Message: invalid argument: 'url' must be a string
+
+【出错代码】src/common/read_csv.py 第32行 + src/testcase/mzgl/test_user_reg.py 第13行
+  # read_csv.py
+  def read_config_data(self, file_name):
+      ...
+      data = dict(csv_data)   # ← 返回字典 {'url': 'http://...'}
+      return data
+
+  # test_user_reg.py
+  url = readcsv_obj.read_config_data('url.csv')  # ← url 是字典
+  self.driver.get(url)                           # ← driver.get() 要字符串
+
+【根因】
+  csv.reader + dict() 把 CSV 转成了字典 {'url': 'http://...'}，
+  但 driver.get() 需要的是字符串 URL。
+
+【修复】
+  url = readcsv_obj.read_config_data('url.csv')['url']
+  取字典的 'url' 键值。其他测试文件都写了 ['url']，只有这个漏了。
+
+
+四、SQL 字符串值没加引号
+--------------------------------------------------------------------------------
+【现象】
+  pymysql.err.OperationalError: (1054, "Unknown column '张三' in 'where clause'")
+
+【出错代码】src/testcase/mzgl/test_user_reg.py 第36行
+  dql = f'select reportid from report where reportName={expected_name} and phone={expected_phone} and state = 1 ;'
+
+【根因】
+  f-string 代入后变成: where reportName=张三 and phone=13800138000
+  MySQL 把 张三 当成列名，而不是字符串值。
+
+【修复】
+  dql = f"select reportid from report where reportName='{expected_name}' and phone='{expected_phone}' and state = 1 ;"
+  字符串值加单引号。
+
+
+五、By.CSS_SELECTOR 误用了 XPath 表达式
+--------------------------------------------------------------------------------
+【现象】
+  selenium.common.exceptions.InvalidSelectorException:
+  Message: invalid selector: An invalid or illegal selector was specified
+
+【出错代码】src/pages/mzgl/add_patient_page.py 第63行
+  prompt_of_required_filed_is_empty_ele = (By.CSS_SELECTOR, '//*[text()="必填项不能为空"]')
+
+【根因】
+  '//*[text()="必填项不能为空"]' 是 XPath 语法，但前面写了 By.CSS_SELECTOR。
+  CSS 选择器不认识 // 开头，Selenium 报非法选择器。
+
+【修复】
+  (By.XPATH, '//*[text()="必填项不能为空"]')
+  改为 By.XPATH。
+
+
+六、input_patient_name() 元素不可交互
+--------------------------------------------------------------------------------
+【现象】
+  selenium.common.exceptions.ElementNotInteractableException:
+  Message: Element <input ...> is not reachable by keyboard
+
+【出错代码】src/pages/mzgl/add_patient_page.py 第81行
+  def input_patient_name(self, patient_name):
+      super().find_element_explicitly(self.patient_name_ele).send_keys(patient_name)
+
+【根因】
+  find_element_explicitly 只等了元素"存在于 DOM"（presence_of_element_located），
+  没有等它"可以接收键盘输入"。页面动画未完成或元素尚未完全渲染时，
+  send_keys 失败。
+
+【修复】
+  def input_patient_name(self, patient_name):
+      ele = super().find_element_explicitly(self.patient_name_ele)
+      ele.click()      # ← 点击聚焦，确保元素进入可交互状态
+      ele.clear()      # ← 清空已有内容
+      ele.send_keys(patient_name)
+
+
+七、click_submit_btn() 提交按钮未滚动到视口
+--------------------------------------------------------------------------------
+【现象】
+  selenium.common.exceptions.ElementNotInteractableException:
+  Message: Element <button ...> could not be scrolled into view
+
+【出错代码】src/pages/mzgl/add_patient_page.py 第128行
+  def click_submit_btn(self):
+      sleep(1)
+      super().find_element_explicitly(self.submit_btn_ele).click()
+
+【根因】
+  提交按钮在表单底部，不在浏览器可视区域内。
+  presence_of_element_located 只保证 DOM 存在，不保证可见。
+  sleep(1) 不能解决滚动问题。
+
+【修复】（见问题八，统一在 BasePage 解决）
+
+
+八、find_element_explicitly 等待条件太弱
+--------------------------------------------------------------------------------
+【根因分析】
+  src/pages/base_page.py 第29行原来使用 EC.presence_of_element_located(locator)，
+  只等待元素存在于 HTML DOM 树中，但以下情况都会导致后续操作失败：
+  - 元素被其他层遮挡
+  - 元素不在可见视口内（需滚动）
+  - 元素的 CSS visibility 为 hidden
+  - 元素的 opacity 为 0
+
+【修复】src/pages/base_page.py 第29行
+  # 修改前
+  emt = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located(locator))
+
+  # 修改后
+  emt = WebDriverWait(self.driver, timeout).until(EC.visibility_of_element_located(locator))
+
+  visibility_of_element_located 要求元素同时满足：
+  1. 存在于 DOM
+  2. 可见（宽高 > 0，非 hidden，非 opacity:0）
+  这解决了问题六（输入框不可交互）和问题七（按钮需滚动到视口）。
+
+
+九、断言文本与页面实际文本不匹配
+--------------------------------------------------------------------------------
+【现象】
+  AssertionError: assert '用户名或密码错误，请重试！' == '密码输入不对!'
+
+【出错代码】src/testcase/others/test_login.py 第29行
+  assert "用户名或密码错误，请重试！" == actual_result
+
+【根因】
+  页面实际显示的是 "密码输入不对!"（login_page.py 定位器可证），
+  但测试代码期望的是 "用户名或密码错误，请重试！"。
+  可能是页面改版后断言没同步更新。
+
+【修复】
+  assert "密码输入不对!" == actual_result
+
+
+十、allure 命令找不到
+--------------------------------------------------------------------------------
+【现象】
+  sh: 1: allure: not found
+
+【根因分析】两处导致：
+  1. ~/.bashrc 中写了 export PATH=$PATH:~/allure-2.33.0/bin
+     ~ 在双引号内不会展开，PATH 里实际存了字面值 ~/allure-2.33.0/bin
+  2. PyCharm 从桌面启动时不读取 ~/.bashrc，即使修了 PATH 也不一定生效
+
+【修复】
+  1. ~/.bashrc: ~ → $HOME
+     export PATH=$PATH:$HOME/allure-2.33.0/bin
+  2. src/testcase_runner.py: allure 改为绝对路径
+     os.system(f'{os.environ["HOME"]}/allure-2.33.0/bin/allure generate ...')
+
+  双重保险，无论怎么启动都能找到 allure。
+
+
+十一、geckodriver 版本过低（警告，未阻塞）
+--------------------------------------------------------------------------------
+【警告信息】
+  The geckodriver version (0.36.0) detected in PATH at /usr/local/bin/geckodriver
+  might not be compatible with the detected firefox version (151.0.3);
+  currently, geckodriver 0.37.0 is recommended for firefox 151.*
+
+【说明】
+  当前还可用，但建议升级 geckodriver 到 0.37.0 以匹配 Firefox 151。
+
+
+================================================================================
+  总结
+================================================================================
+  修改涉及的文件:
+  - src/testcase_runner.py         (pytest参数、allure路径)
+  - src/common/getpath.py          (缺return)
+  - src/common/read_csv.py         (返回字典→需取键值)
+  - src/testcase/mzgl/test_user_reg.py (url取值、SQL加引号)
+  - src/testcase/others/test_login.py  (断言文本)
+  - src/pages/mzgl/add_patient_page.py (选择器类型、输入聚焦)
+  - src/pages/base_page.py         (等待条件升级)
+  - ~/.bashrc                      (PATH中~展开、JAVA_HOME)
+
+  核心经验:
+  1. 检查 API 签名: 传参前确认位置/关键字参数含义
+  2. 方法写完检查 return: 计算了路径不忘返回
+  3. 类型匹配: dict 不能当 str 用，SQL 字符串值要加引号
+  4. 选择器类型要对: XPath 不能用 CSS_SELECTOR
+  5. 等待条件从严: presence → visibility，避免元素不可交互
+  6. 断言要跟页面同步: 页面改版后检查所有硬编码预期文本
+  7. Shell 展开: PATH 中用 $HOME 不用 ~
+================================================================================

@@ -26,7 +26,7 @@ class BasePage:
         :param timeout:
         :return: 返回定位到的元素
         """
-        emt = WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located(locator))
+        emt = WebDriverWait(self.driver, timeout).until(EC.visibility_of_element_located(locator))
         return emt
 
     def get_screenshot(self, case_title):

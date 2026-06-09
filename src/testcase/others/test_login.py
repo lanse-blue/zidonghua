@@ -26,7 +26,7 @@ class TestLogin:
         try:
             self.login_bussniess_obj.login_hospital(2)
             actual_result = self.login_bussniess_obj.get_text_of_login_failed()
-            assert "用户名或密码错误，请重试！" == actual_result
+            assert "密码输入不对!" == actual_result
         except:
             self.login_bussniess_obj.get_screenshot("使用错误的密码")
             raise
