@@ -19,4 +19,4 @@ pytest.main(['--alluredir', allure_results, '--clean-alluredir'])
 # - '-o': 指定输出目录的参数标志(output)
 # - {get_path_obj.get_reports_path()}: 输出目录路径，HTML报告将生成到此位置
 # - '--clean': 清空输出目录中已存在的报告文件，确保生成全新的报告
-os.system(f'{os.environ["HOME"]}/allure-2.33.0/bin/allure generate {allure_results} -o {get_path_obj.get_reports_path()} --clean')
+os.system(f'allure generate {allure_results} -o {get_path_obj.get_reports_path()} --clean')

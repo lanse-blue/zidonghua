@@ -1,3 +1,0 @@
-<_csv.reader object at 0x7d5dc66a30d0> <class '_csv.reader'>
-<_csv.reader object at 0x7d5dc66a3220> <class '_csv.reader'>
-<_csv.reader object at 0x7d5dc66a33e0> <class '_csv.reader'>
